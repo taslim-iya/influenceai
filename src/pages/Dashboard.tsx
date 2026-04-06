@@ -1,42 +1,84 @@
-import { Users, Heart, Eye, TrendingUp } from 'lucide-react'
-
-const stats = [
-  { label: 'Followers', value: '124.5K', icon: Users, color: '#C084FC', change: '+2.3K this week' },
-  { label: 'Engagement', value: '5.8%', icon: Heart, color: '#EC4899', change: '+0.4% vs last week' },
-  { label: 'Impressions', value: '892K', icon: Eye, color: '#3B82F6', change: '+15% this month' },
-  { label: 'Growth Rate', value: '+1.9%', icon: TrendingUp, color: '#10B981', change: 'Weekly average' },
-]
-
-const scheduled = [
-  { title: 'Morning routine reel', platform: '📸 Instagram', time: 'Today 9:00 AM', status: 'scheduled' },
-  { title: 'Product review thread', platform: '🐦 X/Twitter', time: 'Today 2:00 PM', status: 'scheduled' },
-  { title: 'Behind the scenes', platform: '🎵 TikTok', time: 'Tomorrow 11:00 AM', status: 'draft' },
-  { title: 'Weekly tips carousel', platform: '📸 Instagram', time: 'Wed 10:00 AM', status: 'scheduled' },
-]
+import { useAppStore } from '@/stores/appStore'
+import { Link } from 'react-router-dom'
+import { Heart, Eye, MessageCircle, Share2, ArrowUpRight, TrendingUp } from 'lucide-react'
 
 export default function Dashboard() {
+  const { posts, mentions } = useAppStore()
+  const published = posts.filter(p => p.status === 'published')
+  const totalLikes = published.reduce((s, p) => s + p.likes, 0)
+  const totalReach = published.reduce((s, p) => s + p.reach, 0)
+  const totalComments = published.reduce((s, p) => s + p.comments, 0)
+  const totalShares = published.reduce((s, p) => s + p.shares, 0)
+  const engagementRate = totalReach > 0 ? ((totalLikes + totalComments + totalShares) / totalReach * 100).toFixed(1) : '0'
+  const sentimentPositive = mentions.filter(m => m.sentiment === 'positive').length
+  const sentimentNegative = mentions.filter(m => m.sentiment === 'negative').length
+
+  const fmt = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : n.toString()
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-[#FAFAFA]">Dashboard</h1>
+      <h1 className="text-2xl font-bold text-[#F1F5F9]">Dashboard</h1>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map(s => (
-          <div key={s.label} className="rounded-xl p-5 border border-white/5" style={{ background: '#111116' }}>
+        {[
+          { label: 'Total Reach', value: fmt(totalReach), icon: Eye, color: '#C084FC' },
+          { label: 'Engagement', value: `${engagementRate}%`, icon: TrendingUp, color: '#F472B6' },
+          { label: 'Total Likes', value: fmt(totalLikes), icon: Heart, color: '#EF4444' },
+          { label: 'Comments', value: fmt(totalComments), icon: MessageCircle, color: '#3B82F6' },
+        ].map(s => (
+          <div key={s.label} className="rounded-xl p-5 border border-white/10" style={{ background: '#13111C' }}>
             <s.icon size={20} style={{ color: s.color }} className="mb-2" />
-            <div className="text-2xl font-bold text-[#FAFAFA]">{s.value}</div>
-            <div className="text-xs text-[#71717A]">{s.label}</div>
-            <div className="text-xs mt-1" style={{ color: s.color }}>{s.change}</div>
+            <div className="text-2xl font-bold text-[#F1F5F9]">{s.value}</div>
+            <div className="text-xs text-[#94A3B8]">{s.label}</div>
           </div>
         ))}
       </div>
-      <div className="rounded-xl p-5 border border-white/5" style={{ background: '#111116' }}>
-        <h2 className="text-lg font-semibold text-[#FAFAFA] mb-4">Scheduled Content</h2>
-        <div className="space-y-3">
-          {scheduled.map(p => (
-            <div key={p.title} className="flex items-center justify-between p-3 rounded-lg bg-white/5">
-              <div><div className="text-sm text-[#FAFAFA]">{p.title}</div><div className="text-xs text-[#71717A]">{p.platform} · {p.time}</div></div>
-              <span className={`text-xs px-2 py-1 rounded-full ${p.status === 'scheduled' ? 'bg-[#10B981]/10 text-[#10B981]' : 'bg-white/5 text-[#71717A]'}`}>{p.status}</span>
-            </div>
-          ))}
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="rounded-xl p-5 border border-white/10" style={{ background: '#13111C' }}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-[#F1F5F9]">Top Posts</h2>
+            <Link to="/content" className="text-xs text-[#C084FC] flex items-center gap-1">View all <ArrowUpRight size={12} /></Link>
+          </div>
+          <div className="space-y-3">
+            {published.sort((a, b) => b.reach - a.reach).slice(0, 4).map(p => (
+              <div key={p.id} className="p-3 rounded-lg bg-white/5 flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-[#F1F5F9] line-clamp-1">{p.content}</div>
+                  <div className="text-xs text-[#64748B] mt-0.5">{p.platform} · {p.publishedAt}</div>
+                </div>
+                <div className="flex gap-3 text-xs text-[#94A3B8]">
+                  <span className="flex items-center gap-1"><Heart size={10} className="text-[#EF4444]" />{fmt(p.likes)}</span>
+                  <span className="flex items-center gap-1"><Eye size={10} className="text-[#C084FC]" />{fmt(p.reach)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-xl p-5 border border-white/10" style={{ background: '#13111C' }}>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-[#F1F5F9]">Reputation</h2>
+            <Link to="/reputation" className="text-xs text-[#C084FC] flex items-center gap-1">View all <ArrowUpRight size={12} /></Link>
+          </div>
+          <div className="flex gap-4 mb-4">
+            <div className="flex-1 p-3 rounded-lg bg-[#10B981]/10 text-center"><div className="text-xl font-bold text-[#10B981]">{sentimentPositive}</div><div className="text-xs text-[#94A3B8]">Positive</div></div>
+            <div className="flex-1 p-3 rounded-lg bg-[#EF4444]/10 text-center"><div className="text-xl font-bold text-[#EF4444]">{sentimentNegative}</div><div className="text-xs text-[#94A3B8]">Negative</div></div>
+            <div className="flex-1 p-3 rounded-lg bg-white/5 text-center"><div className="text-xl font-bold text-[#94A3B8]">{mentions.filter(m => !m.responded).length}</div><div className="text-xs text-[#94A3B8]">Unread</div></div>
+          </div>
+          <div className="space-y-2">
+            {mentions.filter(m => !m.responded).slice(0, 3).map(m => (
+              <div key={m.id} className="p-3 rounded-lg bg-white/5">
+                <div className="text-sm text-[#F1F5F9] line-clamp-1">{m.content}</div>
+                <div className="text-xs text-[#64748B] mt-0.5">{m.author} · {m.platform}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="rounded-xl p-5 border border-white/10" style={{ background: '#13111C' }}>
+        <h2 className="text-lg font-semibold text-[#F1F5F9] mb-3">Content Calendar</h2>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="p-3 rounded-lg bg-white/5 text-center"><div className="text-xl font-bold text-[#C084FC]">{posts.filter(p => p.status === 'draft').length}</div><div className="text-xs text-[#94A3B8]">Drafts</div></div>
+          <div className="p-3 rounded-lg bg-white/5 text-center"><div className="text-xl font-bold text-[#F59E0B]">{posts.filter(p => p.status === 'scheduled').length}</div><div className="text-xs text-[#94A3B8]">Scheduled</div></div>
+          <div className="p-3 rounded-lg bg-white/5 text-center"><div className="text-xl font-bold text-[#10B981]">{published.length}</div><div className="text-xs text-[#94A3B8]">Published</div></div>
         </div>
       </div>
     </div>

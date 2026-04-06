@@ -1,38 +1,52 @@
-const mentions = [
-  { source: 'Instagram', text: 'Love @yourbrand new collection! 😍', sentiment: 'positive', time: '2h ago' },
-  { source: 'X/Twitter', text: 'Just tried the product, honestly disappointed...', sentiment: 'negative', time: '4h ago' },
-  { source: 'TikTok', text: 'This routine changed my skin fr', sentiment: 'positive', time: '6h ago' },
-  { source: 'Blog', text: 'Comparing top 5 influencers in the space', sentiment: 'neutral', time: '1d ago' },
-  { source: 'Instagram', text: 'Does anyone know if they ship to EU?', sentiment: 'neutral', time: '1d ago' },
-]
+import { useAppStore } from '@/stores/appStore'
+import { useState } from 'react'
+import { CheckCircle, AlertCircle, MessageSquare } from 'lucide-react'
 
-const sentColors: Record<string, string> = { positive: '#10B981', negative: '#EF4444', neutral: '#F59E0B' }
+const sentimentColors: Record<string, string> = { positive: '#10B981', neutral: '#94A3B8', negative: '#EF4444' }
 
 export default function Reputation() {
+  const { mentions, respondToMention } = useAppStore()
+  const [filter, setFilter] = useState<string>('all')
+
+  const filtered = filter === 'all' ? mentions : mentions.filter(m => m.sentiment === filter)
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-[#FAFAFA]">Reputation Monitor</h1>
+      <h1 className="text-2xl font-bold text-[#F1F5F9]">Reputation Monitor</h1>
       <div className="grid grid-cols-3 gap-4">
-        {[{ l: 'Positive', v: '72%', c: '#10B981', e: '😊' }, { l: 'Neutral', v: '21%', c: '#F59E0B', e: '😐' }, { l: 'Negative', v: '7%', c: '#EF4444', e: '😟' }].map(s => (
-          <div key={s.l} className="rounded-xl p-5 border border-white/5 text-center" style={{ background: '#111116' }}>
-            <div className="text-3xl mb-2">{s.e}</div><div className="text-2xl font-bold" style={{ color: s.c }}>{s.v}</div><div className="text-xs text-[#71717A]">{s.l}</div>
+        {['positive', 'neutral', 'negative'].map(s => (
+          <div key={s} className="rounded-xl p-4 border border-white/10 text-center" style={{ background: '#13111C' }}>
+            <div className="text-2xl font-bold" style={{ color: sentimentColors[s] }}>{mentions.filter(m => m.sentiment === s).length}</div>
+            <div className="text-xs text-[#94A3B8] capitalize">{s}</div>
           </div>
         ))}
       </div>
-      <div className="rounded-xl p-5 border border-white/5" style={{ background: '#111116' }}>
-        <h2 className="text-lg font-semibold text-[#FAFAFA] mb-4">Recent Mentions</h2>
-        <div className="space-y-3">
-          {mentions.map((m, i) => (
-            <div key={i} className="p-3 rounded-lg bg-white/5 flex items-start gap-3">
-              <div className="w-2 h-2 rounded-full mt-2 shrink-0" style={{ background: sentColors[m.sentiment] }} />
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1"><span className="text-xs font-medium text-[#C084FC]">{m.source}</span><span className="text-xs text-[#52525B]">{m.time}</span></div>
-                <p className="text-sm text-[#A1A1AA]">{m.text}</p>
+      <div className="flex gap-2">
+        {['all', 'positive', 'neutral', 'negative'].map(s => (
+          <button key={s} onClick={() => setFilter(s)} className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize ${filter === s ? 'bg-[#C084FC] text-white' : 'bg-white/5 text-[#94A3B8]'}`}>{s}</button>
+        ))}
+      </div>
+      <div className="space-y-3">
+        {filtered.map(m => (
+          <div key={m.id} className="rounded-xl p-5 border border-white/10 flex items-start gap-4" style={{ background: '#13111C' }}>
+            <div className="w-2 h-2 rounded-full mt-2 shrink-0" style={{ background: sentimentColors[m.sentiment] }} />
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-sm font-medium text-[#F1F5F9]">{m.author}</span>
+                <span className="text-xs text-[#64748B]">{m.platform} · {m.date}</span>
               </div>
-              <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: `${sentColors[m.sentiment]}15`, color: sentColors[m.sentiment] }}>{m.sentiment}</span>
+              <p className="text-sm text-[#CBD5E1] mb-2">{m.content}</p>
+              <div className="flex items-center gap-3">
+                <span className="text-xs capitalize px-2 py-0.5 rounded-full" style={{ color: sentimentColors[m.sentiment], background: `${sentimentColors[m.sentiment]}15` }}>{m.sentiment}</span>
+                {m.responded ? (
+                  <span className="text-xs text-[#10B981] flex items-center gap-1"><CheckCircle size={12} /> Responded</span>
+                ) : (
+                  <button onClick={() => respondToMention(m.id)} className="text-xs text-[#C084FC] flex items-center gap-1 hover:underline"><MessageSquare size={12} /> Mark Responded</button>
+                )}
+              </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
     </div>
   )
